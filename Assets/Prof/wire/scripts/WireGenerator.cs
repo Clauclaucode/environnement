@@ -32,8 +32,8 @@ public class WireGenerator : MonoBehaviour {
         }
         return res;
     }
-
-    void add_loop( 
+    
+    private void add_loop( 
         Vector3[] prev_axis, 
         Vector3[] curr_axis, 
         Vector3 prev, 
@@ -109,7 +109,7 @@ public class WireGenerator : MonoBehaviour {
         }
     }
 
-    void regenerate() {
+    public void regenerate() {
 
 
         if (points == null) {
@@ -260,6 +260,7 @@ public class WireGenerator : MonoBehaviour {
     public void OnValidate() {
         regenerate_request = true;
     }
+
     private void LateUpdate() {
         if (regenerate_request)
         {
