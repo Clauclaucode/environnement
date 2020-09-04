@@ -7,15 +7,14 @@ public class CoralGeneration : MonoBehaviour
 {
     public SteamVR_Action_Boolean trig_action;
     public SteamVR_Input_Sources handType;
-    public bool coralStarted = false;
+    
+    [HideInInspector] public bool coralStarted = false;
+    [HideInInspector] public int generated_count = 0;
 
     [SerializeField] private CoralPlacement placement;
 
-    private bool sphereContact = false;
-    private bool branchContact = false;
+    private bool contact = false;
     private bool triggerDown = false;
-
-    private GameObject current_coral;
 
     public LineRenderer line = null;
     private GameObject line_obj = null;
@@ -32,8 +31,6 @@ public class CoralGeneration : MonoBehaviour
     private bool pressed = false;
     private Vector3 pick_position = new Vector3();
     private Vector3 last_point;
-    [HideInInspector]
-    public int generated_count = 0;
     private List<Vector3> points = null;
 
     [Range(0.0f, 10.0f)]
@@ -53,13 +50,17 @@ public class CoralGeneration : MonoBehaviour
     public void TriggerUp(SteamVR_Action_Boolean fromAction, SteamVR_Input_Sources fromSource)
     {
         triggerDown = false;
+        placement.paused = false;
+        generate_wire();
         reset_line();
     }
     public void TriggerDown(SteamVR_Action_Boolean fromAction, SteamVR_Input_Sources fromSource)
     {
-        if (branchContact)
+        if (contact)
         {
             triggerDown = true;
+            placement.paused = true;
+
             pick_position = transform.position;
             if (!coralStarted)
             {
@@ -79,14 +80,16 @@ public class CoralGeneration : MonoBehaviour
     {
         if (!coralStarted && other.CompareTag("sphere"))
         {
-            branchContact = true;
+            contact = true;
             Debug.Log("Sphere");
+            
         }
             
         else if (coralStarted && other.CompareTag("coral"))
         {
-            branchContact = true;
+            contact = true;
             Debug.Log("Corail");
+            
         }
 
     }
@@ -95,14 +98,15 @@ public class CoralGeneration : MonoBehaviour
     {
         if (!coralStarted && other.CompareTag("sphere"))
         {
-            branchContact = false;
+            contact = false;
+            
         }
 
         else if (coralStarted && other.CompareTag("coral"))
         {
-            branchContact = false;
+            contact = false;
+            
         }
-
     }
     
     private void reset_line()
@@ -231,12 +235,6 @@ public class CoralGeneration : MonoBehaviour
         }
     }
 
-    private void set_coral_origin(Vector3 origin)
-    {
-
-    }
-
-
     public void Update()
     {
 
@@ -275,7 +273,6 @@ public class CoralGeneration : MonoBehaviour
 
     }
 
-    /*
     private void generate_wire()
     {
 
@@ -300,5 +297,4 @@ public class CoralGeneration : MonoBehaviour
             Destroy(tmp_line);
         }
     }
-*/
 }
