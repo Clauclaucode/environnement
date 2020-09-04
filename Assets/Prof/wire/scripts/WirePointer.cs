@@ -7,11 +7,15 @@ public class WirePointer : Pointer
 
     public LineRenderer line = null;
     private GameObject line_obj = null;
+    public bool line_autoremove = false;
 
     public GameObject collider = null;
     public float collider_radius = 0.2f;
 
     public WireGenerator wire_generator = null;
+    public bool wire_animated = false;
+    private WireGenerator tmp_wire = null;
+    private int wire_segments = 0;
 
     private GameObject tmp_obj = null;
     private LineRenderer tmp_line = null;
@@ -38,12 +42,17 @@ public class WirePointer : Pointer
 
     private void reset_line()
     {
+        if (line_autoremove && tmp_line != null) {
+            Destroy(tmp_line);
+        } 
         tmp_obj = null;
         tmp_line = null;
+        tmp_wire = null;
         pick_distance = 0;
         pick_position = new Vector3();
         last_point = new Vector3();
         points = new List<Vector3>();
+        wire_segments = 0;
     }
 
     private void start_line() {
@@ -66,6 +75,10 @@ public class WirePointer : Pointer
         tmp_obj.transform.position = base.last_position;
         generated_count += 1;
         points.Add(last_point);
+
+        if (wire_animated) {
+            generate_wire();
+        }
 
     }
 
@@ -99,6 +112,33 @@ public class WirePointer : Pointer
 
     }
 
+    private void add_collider(WireSegment ws) {
+        if (tmp_obj == null || collider == null)
+        {
+            return;
+        }
+
+        GameObject tmp_coll = Instantiate(collider);
+        tmp_coll.transform.parent = tmp_obj.transform;
+
+        Quaternion q = new Quaternion();
+        q.SetLookRotation(ws.diff.normalized, Vector3.up);
+        // rotate it 90* on X
+        Quaternion corrq = new Quaternion();
+        float theta = Mathf.PI * 0.5f;
+        Vector3 axis = Vector3.right;
+        corrq.SetAxisAngle(axis, theta);
+
+        tmp_coll.transform.rotation = q * corrq;
+        tmp_coll.transform.position = tmp_obj.transform.position + ws.start + ws.diff * 0.5f;
+        tmp_coll.transform.localScale = new Vector3(collider_radius, ws.diff.magnitude * 0.5f, collider_radius);
+
+        if (tag != "")
+        {
+            tmp_coll.tag = tag;
+        }
+    }
+
     private void add_position() {
 
         if (tmp_obj == null) {
@@ -111,11 +151,18 @@ public class WirePointer : Pointer
         {
             last_point = newp;
             points.Add(last_point);
-            add_collider();
             pcount += 1;
             if (tmp_line != null) { 
                 tmp_line.positionCount = pcount;
                 tmp_line.SetPosition(pcount - 1, newp);
+            }
+            if (wire_animated && tmp_wire != null)
+            {
+                tmp_wire.points = new List<Vector3>(points);
+                tmp_wire.request_regeneration();
+            }
+            else {
+                add_collider();
             }
         }
         else if (tmp_line != null)
@@ -133,19 +180,16 @@ public class WirePointer : Pointer
         if (tmp_obj == null || wire_generator == null) {
             return;
         }
-        GameObject tmp_wire = Instantiate( wire_generator.gameObject );
-        tmp_wire.name = "wire";
-        tmp_wire.transform.parent = tmp_obj.transform;
-        tmp_wire.transform.localPosition = new Vector3();
-        WireGenerator wg = tmp_wire.GetComponent<WireGenerator>();
-        List<Vector3> wgpts = new List<Vector3>();
-        foreach (Vector3 v in points) {
-            wgpts.Add(v);
-        }
-        wg.points = wgpts;
 
-        if (tmp_line != null) {
-            Destroy(tmp_line);
+        GameObject tw = Instantiate( wire_generator.gameObject );
+        tw.name = "wire";
+        tw.transform.parent = tmp_obj.transform;
+        tw.transform.localPosition = new Vector3();
+        tmp_wire = tw.GetComponent<WireGenerator>();
+
+        if (wire_animated) {
+            tmp_wire.animated = true;
+            tmp_wire.play = true;
         }
 
     }
@@ -168,8 +212,22 @@ public class WirePointer : Pointer
         }
         else if (Input.GetMouseButtonUp(0))
         {
-            generate_wire();
+            if (!wire_animated)
+            {
+                generate_wire();
+            }
+            else if (tmp_wire != null) {
+                tmp_wire.play = false;
+            }
             reset_line();
+        }
+
+        if (wire_animated && tmp_wire != null && collider != null) {
+            int curr_segs = tmp_wire.get_segment_count();
+            for (int  i = wire_segments; i < curr_segs; ++i) {
+                add_collider(tmp_wire.get_segment(i));
+            }
+            wire_segments = curr_segs;
         }
 
         if (pressed) {

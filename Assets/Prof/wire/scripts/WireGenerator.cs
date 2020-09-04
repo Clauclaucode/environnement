@@ -2,6 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public struct WireSegment
+{
+    public Vector3 start;
+    public Vector3 end;
+    public Vector3 diff; // vector from start to end
+};
+
 [ExecuteInEditMode]
 public class WireGenerator : MonoBehaviour {
 
@@ -12,11 +19,20 @@ public class WireGenerator : MonoBehaviour {
     public bool fix_intersections = true;
     public bool per_segment_uv = true;
     public bool close_top = true;
-
     public LineRenderer source = null;
 
+    public bool animated = false;
+    private bool animated_prev = false;
+    public bool play = false;
+    [Range(0.0f, 10.0f)]
+    public float growing_speed = 1;
+    private float current_length = 0;
+    private float total_length = 0;
+
+    private List<Vector3> src_points;
     private MeshFilter meshFilter = null;
     private bool regenerate_request = false;
+    private bool render_request = false;
     // mesh buffers
     private List<Vector3> vertices;
     private List<int> faces;
@@ -24,6 +40,25 @@ public class WireGenerator : MonoBehaviour {
     private List<Vector2> uv0s;
     private List<Vector2> uv1s;
 
+    // usefull
+    private List<WireSegment> segments;
+
+    public int get_segment_count() {
+        if (segments == null) {
+            return 0;
+        }
+        return segments.Count;
+    }
+
+    public WireSegment get_segment(int i) {
+        return segments[i];
+    }
+
+    public void request_regeneration() {
+        regenerate_request = true;
+    }
+
+    // NOT to be used with WireSegments!
     Vector3[] mix_segments( Vector3[] s0, Vector3[] s1, float alpha ) {
         Vector3[] res = new Vector3[] { s0[0], s0[1], s0[2] };
         for ( int  i = 0; i < 3; ++i )
@@ -109,9 +144,17 @@ public class WireGenerator : MonoBehaviour {
         }
     }
 
-    public void regenerate() {
+    private void render_length() {
+        total_length = 0;
+        for (int i = 1; i < points.Count; ++i) {
+            total_length += (points[i] - points[i - 1]).magnitude;
+        }
+    }
 
+    private void render_mesh()
+    {
 
+        // checking meshfilter
         if (meshFilter == null)
         {
             meshFilter = GetComponent<MeshFilter>();
@@ -121,16 +164,72 @@ public class WireGenerator : MonoBehaviour {
             meshFilter = gameObject.AddComponent<MeshFilter>();
         }
 
-        if (points == null) {
-            points = new List<Vector3>();
-        }
-        if (points.Count < 2)
+        if ( points.Count < 2 )
         {
             meshFilter.mesh = new Mesh();
-
             return;
         }
-        if (definition < 2) {
+
+        // reseting lists
+        segments = new List<WireSegment>();
+        src_points = new List<Vector3>();
+
+        // different behaviour if wire is animated or not
+        if (!animated)
+        {
+            src_points = points;
+            for (int i = 1; i < src_points.Count; ++i) {
+                WireSegment ws;
+                ws.start = src_points[i - 1];
+                ws.end = src_points[i];
+                ws.diff = ws.end - ws.start;
+                segments.Add(ws);
+            }
+        }
+        else
+        {
+            // pushing points into src_points until it reached current_length
+            if (current_length == 0)
+            {
+                // stopping here, pushing empty mesh
+                meshFilter.mesh = new Mesh();
+                return;
+            }
+            else
+            {
+                float l = 0;
+                for (int i = 0; i < points.Count; ++i)
+                {
+                    if (i == 0)
+                    {
+                        src_points.Add(points[i]);
+                        continue;
+                    }
+                    Vector3 diff = points[i] - points[i - 1];
+                    float segl = diff.magnitude;
+                    if (l + segl < current_length)
+                    {
+                        src_points.Add(points[i]);
+                        WireSegment ws;
+                        ws.start = src_points[i - 1];
+                        ws.end = src_points[i];
+                        ws.diff = ws.end - ws.start;
+                        segments.Add(ws);
+                    }
+                    else
+                    {
+                        float part = (l + segl) - current_length;
+                        Vector3 newp = points[i] - diff.normalized * part;
+                        src_points.Add(newp);
+                        break;
+                    }
+                    l += segl;
+                }
+            }
+        }
+
+        if (definition < 2)
+        {
             definition = 2;
         }
         if (subdivision < 0)
@@ -138,22 +237,15 @@ public class WireGenerator : MonoBehaviour {
             subdivision = 0;
         }
 
-        List<Vector3> src_points = points;
-        if (source != null && source.positionCount > 1) {
-            src_points = new List<Vector3>();
-            for ( int i = 0; i < source.positionCount; ++i )
-            {
-                src_points.Add(source.GetPosition(i));
-            }
-            
-        }
-
         List<Vector3> _pts = new List<Vector3>();
-        for (int i = 0; i < src_points.Count; ++i) {
+        for (int i = 0; i < src_points.Count; ++i)
+        {
             _pts.Add(src_points[i]);
-            if (i < src_points.Count - 1 && subdivision > 0) {
-                Vector3 diff = (src_points[i + 1] - src_points[i] ) / (subdivision +1);
-                for (int j = 1; j <= subdivision; ++j) {
+            if (i < src_points.Count - 1 && subdivision > 0)
+            {
+                Vector3 diff = (src_points[i + 1] - src_points[i]) / (subdivision + 1);
+                for (int j = 1; j <= subdivision; ++j)
+                {
                     _pts.Add(src_points[i] + diff * j);
                 }
             }
@@ -167,61 +259,67 @@ public class WireGenerator : MonoBehaviour {
         uv0s = new List<Vector2>();
         uv1s = new List<Vector2>();
 
-        float total_length = 0;
+        float tmp_length = 0;
 
-        List<Vector3[]> segments = new List<Vector3[]>();
-        for (int i = 1; i < _pts.Count; ++i) {
-            Vector3 up = (_pts[i] - _pts[i-1]).normalized;
+        // sub segments
+        List<Vector3[]> segs = new List<Vector3[]>();
+        for (int i = 1; i < _pts.Count; ++i)
+        {
+            Vector3 up = (_pts[i] - _pts[i - 1]).normalized;
             Vector3 front;
             Vector3 left;
-            if (Mathf.Abs(Vector3.Dot(Vector3.up, up)) > 1e-5) {
+            if (Mathf.Abs(Vector3.Dot(Vector3.up, up)) > 1e-5)
+            {
                 front = Vector3.Cross(Vector3.left, up);
                 left = Vector3.Cross(front, up);
-            } else {
+            }
+            else
+            {
                 front = Vector3.Cross(Vector3.up, up);
                 left = Vector3.Cross(front, up);
             }
-            segments.Add(new Vector3[] { front, up, left });
+            segs.Add(new Vector3[] { front, up, left });
         }
 
-        Vector3[] curr_axis = segments[0];
+        Vector3[] curr_axis = segs[0];
 
         int pcount = _pts.Count;
-        for (int i = 1; i < _pts.Count; ++i) {
+        for (int i = 1; i < _pts.Count; ++i)
+        {
 
-            Vector3 prev = _pts[i-1];
+            Vector3 prev = _pts[i - 1];
             Vector3 curr = _pts[i];
 
             int prev_seg = i - 2;
             if (prev_seg < 0) { prev_seg = 0; }
             int curr_seg = i - 1;
             int next_seg = i;
-            if (next_seg >= pcount-1) { next_seg = curr_seg; }
+            if (next_seg >= pcount - 1) { next_seg = curr_seg; }
 
             float length = (curr - prev).magnitude;
             Vector3[] prev_axis;
-                
-            if (fix_intersections) { prev_axis = mix_segments(segments[prev_seg], segments[curr_seg], 0.5f); }
-            else { prev_axis = segments[curr_seg]; }
 
-            if (fix_intersections) { curr_axis = mix_segments(segments[curr_seg], segments[next_seg], 0.5f); }
-            else { curr_axis = segments[curr_seg]; }
-            
+            if (fix_intersections) { prev_axis = mix_segments(segs[prev_seg], segs[curr_seg], 0.5f); }
+            else { prev_axis = segs[curr_seg]; }
+
+            if (fix_intersections) { curr_axis = mix_segments(segs[curr_seg], segs[next_seg], 0.5f); }
+            else { curr_axis = segs[curr_seg]; }
+
             add_loop(
                 prev_axis, curr_axis,
                 prev, curr,
                 prev, curr,
                 thickness, thickness,
-                total_length, total_length + length);
-            
-            total_length += length;
+                tmp_length, tmp_length + length);
+
+            tmp_length += length;
 
         }
 
         if (close_top)
         {
             // creation of an hemisphere at the end of the tube
-            int cap_def = Mathf.CeilToInt( definition * 0.5f );
+            int cap_def = Mathf.CeilToInt(definition * 0.5f);
             float agap = Mathf.PI * 0.5f / cap_def;
             Vector3 center = _pts[pcount - 1];
             for (int j = 1; j < cap_def + 1; ++j)
@@ -235,10 +333,10 @@ public class WireGenerator : MonoBehaviour {
                     curr_axis, curr_axis,
                     center + curr_axis[1] * prev_s * thickness,
                     center + curr_axis[1] * curr_s * thickness,
-                    center, center, 
-                    thickness * prev_m, thickness * curr_m, 
-                    total_length, total_length + length);
-                total_length += length;
+                    center, center,
+                    thickness * prev_m, thickness * curr_m,
+                    tmp_length, tmp_length + length);
+                tmp_length += length;
             }
         }
 
@@ -250,7 +348,8 @@ public class WireGenerator : MonoBehaviour {
             mesh.uv = uv0s.ToArray();
             mesh.uv2 = uv1s.ToArray();
         }
-        else {
+        else
+        {
             mesh.uv = uv1s.ToArray();
             mesh.uv2 = uv0s.ToArray();
         }
@@ -259,15 +358,47 @@ public class WireGenerator : MonoBehaviour {
 
     }
 
+    public void regenerate() {
+
+        // checking points
+        if (points == null) {
+            points = new List<Vector3>();
+        }
+        if (source != null && source.positionCount > 1)
+        {
+            points = new List<Vector3>();
+            for (int i = 0; i < source.positionCount; ++i)
+            {
+                points.Add(source.GetPosition(i));
+            }
+
+        }
+
+        render_length();
+        render_mesh();
+
+    }
+
     public void OnValidate() {
         regenerate_request = true;
     }
 
     private void LateUpdate() {
+
+        if (animated_prev != animated) {
+            current_length = 0;
+            animated_prev = animated;
+        }
+
         if (regenerate_request)
         {
             regenerate_request = false;
+            render_request = false;
             regenerate();
+        }
+        else if (render_request) {
+            render_request = false;
+            render_mesh();
         }
     }
 
@@ -280,12 +411,32 @@ public class WireGenerator : MonoBehaviour {
             meshRenderer.sharedMaterial = new Material(Shader.Find("Standard"));
         }
 
+        if (animated)
+        {
+            current_length = 0;
+        }
+
         regenerate();
 
     }
 
     // Update is called once per frame
     void Update () {
-		
+
+        if (animated && play) {
+            if (current_length >= total_length)
+            {
+                return;
+            }
+            else
+            {
+                current_length += Time.deltaTime * growing_speed;
+                if (current_length >= total_length) {
+                    current_length = total_length;
+                }
+                render_request = true;
+            }
+        }
+
 	}
 }
