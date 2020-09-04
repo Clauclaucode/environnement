@@ -112,14 +112,23 @@ public class WireGenerator : MonoBehaviour {
     public void regenerate() {
 
 
+        if (meshFilter == null)
+        {
+            meshFilter = GetComponent<MeshFilter>();
+        }
+        if (meshFilter == null)
+        {
+            meshFilter = gameObject.AddComponent<MeshFilter>();
+        }
+
         if (points == null) {
             points = new List<Vector3>();
         }
         if (points.Count < 2)
         {
-            points.Clear();
-            points.Add(new Vector3(0, 0, 0));
-            points.Add(new Vector3(0, 0, 1));
+            meshFilter.mesh = new Mesh();
+
+            return;
         }
         if (definition < 2) {
             definition = 2;
@@ -244,13 +253,6 @@ public class WireGenerator : MonoBehaviour {
         else {
             mesh.uv = uv1s.ToArray();
             mesh.uv2 = uv0s.ToArray();
-        }
-
-        if (meshFilter == null) {
-            meshFilter = GetComponent<MeshFilter>();
-        }
-        if (meshFilter == null) {
-            meshFilter = gameObject.AddComponent<MeshFilter>();
         }
 
         meshFilter.mesh = mesh;
