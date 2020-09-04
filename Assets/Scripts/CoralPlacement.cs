@@ -10,9 +10,14 @@ public class CoralPlacement : MonoBehaviour
     public GameObject coral;
     public CoralGeneration generation;
 
+    public bool paused = false;
+
     [SerializeField] private GameObject highlight;
+
+
     private MeshRenderer highlight_mr;
     private bool triggerDown;
+    private bool contact;
     private RaycastHit hit;
     private Vector3 ray_vec;
 
@@ -26,6 +31,7 @@ public class CoralPlacement : MonoBehaviour
     }
     void Update()
     {
+        if (paused) { return; }
 
         ray_vec = transform.position + transform.forward * 1000;
         if (coral != null && Physics.Raycast(transform.position, ray_vec, out hit) && hit.collider.CompareTag("sandbox"))
@@ -62,12 +68,28 @@ public class CoralPlacement : MonoBehaviour
     public void TriggerUp(SteamVR_Action_Boolean fromAction, SteamVR_Input_Sources fromSource)
     {
         triggerDown = false;
-        //Debug.Log("Trigger up");
+        paused = false;
     }
     public void TriggerDown(SteamVR_Action_Boolean fromAction, SteamVR_Input_Sources fromSource)
     {
         triggerDown = true;
-        //Debug.Log("Trigger down");
+        if (contact) { paused = true; }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("coral"))
+        {
+            contact = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("coral"))
+        {
+            contact = false;
+        }
     }
 }
 
