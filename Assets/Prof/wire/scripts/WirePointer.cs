@@ -191,7 +191,6 @@ public class WirePointer : Pointer
             tmp_wire.animated = true;
             tmp_wire.play = true;
         }
-
     }
 
     public void Update()
@@ -233,7 +232,5 @@ public class WirePointer : Pointer
         if (pressed) {
             add_position();
         }
-
     }
-
 }

@@ -12,6 +12,7 @@ public class CoralGeneration : MonoBehaviour
     [HideInInspector] public int generated_count = 0;
 
     [SerializeField] private CoralPlacement placement;
+    [SerializeField] private bool animation;
 
     private bool contact = false;
     private bool triggerDown = false;
@@ -275,7 +276,6 @@ public class CoralGeneration : MonoBehaviour
 
     private void generate_wire()
     {
-
         if (tmp_obj == null || wire_generator == null)
         {
             return;
@@ -295,6 +295,12 @@ public class CoralGeneration : MonoBehaviour
         if (tmp_line != null)
         {
             Destroy(tmp_line);
+        }
+
+        if (animation)
+        {
+            wg.animated = true;
+            wg.play = true;
         }
     }
 }

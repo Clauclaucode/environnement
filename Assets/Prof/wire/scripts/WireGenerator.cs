@@ -417,10 +417,8 @@ public class WireGenerator : MonoBehaviour {
         }
 
         regenerate();
-
     }
 
-    // Update is called once per frame
     void Update () {
 
         if (animated && play) {
@@ -437,6 +435,5 @@ public class WireGenerator : MonoBehaviour {
                 render_request = true;
             }
         }
-
 	}
 }

@@ -3253,6 +3253,16 @@ PrefabInstance:
       propertyPath: thickness
       value: 0.05
       objectReference: {fileID: 0}
+    - target: {fileID: 7467954750998395283, guid: 7b9a48d398466ad4aa3dc719fe8c896b,
+        type: 3}
+      propertyPath: source
+      value: 
+      objectReference: {fileID: 5223902367293633503}
+    - target: {fileID: 7467954750998395283, guid: 7b9a48d398466ad4aa3dc719fe8c896b,
+        type: 3}
+      propertyPath: animated
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7467954750998395284, guid: 7b9a48d398466ad4aa3dc719fe8c896b,
         type: 3}
       propertyPath: m_Enabled
