@@ -2422,6 +2422,7 @@ MonoBehaviour:
   coralStarted: 0
   generated_count: 0
   placement: {fileID: 5223902368492054365}
+  animation: 1
   line: {fileID: 5223902367293633503}
   collider: {fileID: 5223902368383154449}
   collider_radius: 0.1
