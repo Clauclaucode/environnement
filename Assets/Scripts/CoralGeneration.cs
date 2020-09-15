@@ -1,14 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using Valve.VR;
 
 public class CoralGeneration : MonoBehaviour
 {
     public SteamVR_Action_Boolean trig_action;
-    public SteamVR_Input_Sources handType;
-    
-    [HideInInspector] public bool coralStarted = false;
+    public SteamVR_Input_Sources handType = SteamVR_Input_Sources.RightHand;
+
+    public bool coralStarted = false;
     [HideInInspector] public int generated_count = 0;
 
     [SerializeField] private CoralPlacement placement;
@@ -40,6 +41,9 @@ public class CoralGeneration : MonoBehaviour
 
     [Range(0.0f, 10.0f)]
     public float sampling = 0.5f;
+
+    public UnityEvent beginGen;
+    public UnityEvent endGen;
 
     public void Start()
     {
@@ -79,11 +83,11 @@ public class CoralGeneration : MonoBehaviour
                 start_line();
                 origin = tmp_obj;
             }
-            else 
+            else
             {
                 start_line();
             }
-            
+
             //Debug.Log("Trigger down");
         }
     }
@@ -94,35 +98,49 @@ public class CoralGeneration : MonoBehaviour
         {
             contact = true;
             Debug.Log("Sphere");
-            
+
         }
-            
+
         else if (coralStarted && other.CompareTag("coral"))
         {
             contact = true;
             Debug.Log("Corail");
-            
+
         }
 
     }
-    
+
     private void OnTriggerExit(Collider other)
     {
         if (!coralStarted && other.CompareTag("sphere"))
         {
             contact = false;
-            
+
         }
 
         else if (coralStarted && other.CompareTag("coral"))
         {
             contact = false;
-            
+
         }
     }
-    
+    public void end()
+    {
+        contact = false;
+        triggerDown = false;
+        generated_count = 0;
+        origin = null;
+        coralStarted = false;
+    }
+
     private void reset_line()
     {
+        endGen.Invoke();
+        
+        if (line_autoremove && tmp_line != null)
+        {
+            Destroy(tmp_line);
+        }
         tmp_obj = null;
         tmp_line = null;
         tmp_wire = null;
@@ -134,6 +152,7 @@ public class CoralGeneration : MonoBehaviour
 
     private void start_line()
     {
+        beginGen.Invoke();
 
         tmp_obj = new GameObject();
         if (generated_count > 0)
@@ -145,7 +164,7 @@ public class CoralGeneration : MonoBehaviour
             tmp_obj.name = "coral";
             placement.coral = tmp_obj;
         }
-        
+
 
         if (origin != null)
         {
@@ -184,7 +203,7 @@ public class CoralGeneration : MonoBehaviour
             return;
         }
 
-        
+
 
         GameObject tmp_coll = Instantiate(collider);
         tmp_coll.transform.parent = tmp_obj.transform;
@@ -227,6 +246,8 @@ public class CoralGeneration : MonoBehaviour
             return;
         }
 
+        coralStarted = true;
+
         GameObject tmp_coll = Instantiate(collider);
         tmp_coll.transform.parent = tmp_obj.transform;
 
@@ -242,10 +263,7 @@ public class CoralGeneration : MonoBehaviour
         tmp_coll.transform.position = tmp_obj.transform.position + ws.start + ws.diff * 0.5f;
         tmp_coll.transform.localScale = new Vector3(collider_radius, ws.diff.magnitude * 0.5f, collider_radius);
 
-        if (tag != "")
-        {
-            tmp_coll.tag = tag;
-        }
+        tmp_coll.tag = "coral";
     }
 
 
@@ -320,6 +338,11 @@ public class CoralGeneration : MonoBehaviour
         if (wire_animated && tmp_wire != null && collider != null)
         {
             int curr_segs = tmp_wire.get_segment_count();
+            //if (curr_segs != wire_segments)
+            //{
+            //    Debug.Log(wire_segments + "/" + curr_segs);
+            //}
+            
             for (int i = wire_segments; i < curr_segs; ++i)
             {
                 add_collider(tmp_wire.get_segment(i));
@@ -327,40 +350,34 @@ public class CoralGeneration : MonoBehaviour
             wire_segments = curr_segs;
         }
 
-        if (pressed)
-        {
-            add_position();
-        }
-
-        //add_position();
-
-        //// /base.Update();
-        // if (Input.GetMouseButtonDown(0))
-        // {
-        //     //pressed = true;
-        //     //if (base.touch)
-        //     //{
-        //     //    pick_position = base.last_position;
-        //     //    pick_distance = base.last_distance;
-        //     //    start_line();
-        //     //}
-        //     //else
-        //     //{
-        //     //    tmp_obj = null;
-        //     //}
-        // }
-        // else if (Input.GetMouseButtonUp(0))
-        // {
-        //     generate_wire();
-        //     reset_line();
-        // }
-
-        // if (pressed)
-        // {
-        //     
-        // }
-
+        add_position();
     }
 
+    //add_position();
 
+    //// /base.Update();
+    // if (Input.GetMouseButtonDown(0))
+    // {
+    //     //pressed = true;
+    //     //if (base.touch)
+    //     //{
+    //     //    pick_position = base.last_position;
+    //     //    pick_distance = base.last_distance;
+    //     //    start_line();
+    //     //}
+    //     //else
+    //     //{
+    //     //    tmp_obj = null;
+    //     //}
+    // }
+    // else if (Input.GetMouseButtonUp(0))
+    // {
+    //     generate_wire();
+    //     reset_line();
+    // }
+
+    // if (pressed)
+    // {
+    //     
+    // }
 }

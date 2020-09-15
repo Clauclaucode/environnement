@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using Valve.VR;
 
 public class CoralPlacement : MonoBehaviour
@@ -8,7 +9,8 @@ public class CoralPlacement : MonoBehaviour
     public SteamVR_Action_Boolean trig_action;
     public SteamVR_Input_Sources handType;
     public GameObject coral;
-    public CoralGeneration generation;
+    //public CoralGeneration generation;
+    public UnityEvent coralPlaced;
 
     public bool paused = false;
 
@@ -27,7 +29,7 @@ public class CoralPlacement : MonoBehaviour
         trig_action.AddOnStateUpListener(TriggerUp, handType);
 
         highlight_mr = highlight.GetComponent<MeshRenderer>();
-        if (generation == null) { generation = GetComponent<CoralGeneration>(); }
+       // if (generation == null) { generation = GetComponent<CoralGeneration>(); }
     }
     void Update()
     {
@@ -42,6 +44,7 @@ public class CoralPlacement : MonoBehaviour
             // On click
             if (triggerDown)
             {
+                // Set the coral’s origin at the beginning of the first branch
                 Transform origin;
                 origin = coral.transform.GetChild(0).transform;
                 if (origin.GetComponent<Collider>() == null)
@@ -51,11 +54,11 @@ public class CoralPlacement : MonoBehaviour
                 }
                 else { Debug.Log("Taking firstborn"); }
 
-
-                coral.transform.position = hit.point; //+ origin.position
+                coral.transform.position = hit.point;
                 coral = null;
-                generation.coralStarted = false;
-                generation.generated_count = 0;
+                //generation.end();
+                coralPlaced.Invoke();
+
                 Debug.Log("placing");
             }
         }
@@ -92,5 +95,3 @@ public class CoralPlacement : MonoBehaviour
         }
     }
 }
-
-
