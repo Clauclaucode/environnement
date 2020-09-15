@@ -55,6 +55,9 @@ MonoBehaviour:
   per_segment_uv: 0
   close_top: 1
   source: {fileID: 0}
+  animated: 0
+  play: 0
+  growing_speed: 0.3
 --- !u!23 &7467954750998395284
 MeshRenderer:
   m_ObjectHideFlags: 0
