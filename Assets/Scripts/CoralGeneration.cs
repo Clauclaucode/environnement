@@ -217,7 +217,7 @@ public class CoralGeneration : MonoBehaviour
         {
             last_point = newp;
             points.Add(last_point);
-            add_collider();
+            //add_collider();
             pcount += 1;
             if (tmp_line != null)
             {
