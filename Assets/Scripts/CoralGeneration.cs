@@ -97,14 +97,14 @@ public class CoralGeneration : MonoBehaviour
         if (!coralStarted && other.CompareTag("sphere"))
         {
             contact = true;
-            Debug.Log("Sphere");
+            Debug.Log("Début de cotact avec la sphere");
 
         }
 
         else if (coralStarted && other.CompareTag("coral"))
         {
             contact = true;
-            Debug.Log("Corail");
+            Debug.Log("Début de contact avec le corail");
 
         }
 
@@ -112,16 +112,16 @@ public class CoralGeneration : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (!coralStarted && other.CompareTag("sphere"))
+        if (other.CompareTag("sphere"))
         {
             contact = false;
-
+            Debug.Log("Fin de contact avec la sphère");
         }
 
-        else if (coralStarted && other.CompareTag("coral"))
+        else if (other.CompareTag("coral"))
         {
             contact = false;
-
+            Debug.Log("Fin de contact avec le corail");
         }
     }
     public void end()
