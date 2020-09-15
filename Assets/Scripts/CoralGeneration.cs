@@ -19,11 +19,15 @@ public class CoralGeneration : MonoBehaviour
 
     public LineRenderer line = null;
     private GameObject line_obj = null;
+    public bool line_autoremove = false;
 
     public GameObject collider = null;
     public float collider_radius = 0.2f;
 
     public WireGenerator wire_generator = null;
+    public bool wire_animated = false;
+    private WireGenerator tmp_wire = null;
+    private int wire_segments = 0;
 
     private GameObject origin = null;
     private GameObject tmp_obj = null;
@@ -48,13 +52,19 @@ public class CoralGeneration : MonoBehaviour
         }
         reset_line();
     }
+
     public void TriggerUp(SteamVR_Action_Boolean fromAction, SteamVR_Input_Sources fromSource)
     {
         triggerDown = false;
         placement.paused = false;
-        generate_wire();
+        //generate_wire();
+        if (tmp_wire != null)
+        {
+            tmp_wire.play = false;
+        }
         reset_line();
     }
+
     public void TriggerDown(SteamVR_Action_Boolean fromAction, SteamVR_Input_Sources fromSource)
     {
         if (contact)
@@ -77,6 +87,7 @@ public class CoralGeneration : MonoBehaviour
             //Debug.Log("Trigger down");
         }
     }
+
     private void OnTriggerEnter(Collider other)
     {
         if (!coralStarted && other.CompareTag("sphere"))
@@ -114,9 +125,11 @@ public class CoralGeneration : MonoBehaviour
     {
         tmp_obj = null;
         tmp_line = null;
+        tmp_wire = null;
         pick_position = new Vector3();
         last_point = new Vector3();
         points = new List<Vector3>();
+        wire_segments = 0;
     }
 
     private void start_line()
@@ -156,9 +169,12 @@ public class CoralGeneration : MonoBehaviour
         generated_count += 1;
         points.Add(last_point);
 
-    }
+        if (wire_animated)
+        {
+            generate_wire();
+        }
 
-    
+    }
 
     private void add_collider()
     {
@@ -204,6 +220,35 @@ public class CoralGeneration : MonoBehaviour
 
     }
 
+    private void add_collider(WireSegment ws)
+    {
+        if (tmp_obj == null || collider == null)
+        {
+            return;
+        }
+
+        GameObject tmp_coll = Instantiate(collider);
+        tmp_coll.transform.parent = tmp_obj.transform;
+
+        Quaternion q = new Quaternion();
+        q.SetLookRotation(ws.diff.normalized, Vector3.up);
+        // rotate it 90* on X
+        Quaternion corrq = new Quaternion();
+        float theta = Mathf.PI * 0.5f;
+        Vector3 axis = Vector3.right;
+        corrq.SetAxisAngle(axis, theta);
+
+        tmp_coll.transform.rotation = q * corrq;
+        tmp_coll.transform.position = tmp_obj.transform.position + ws.start + ws.diff * 0.5f;
+        tmp_coll.transform.localScale = new Vector3(collider_radius, ws.diff.magnitude * 0.5f, collider_radius);
+
+        if (tag != "")
+        {
+            tmp_coll.tag = tag;
+        }
+    }
+
+
     private void add_position()
     {
 
@@ -224,6 +269,15 @@ public class CoralGeneration : MonoBehaviour
                 tmp_line.positionCount = pcount;
                 tmp_line.SetPosition(pcount - 1, newp);
             }
+            if (wire_animated && tmp_wire != null)
+            {
+                tmp_wire.points = new List<Vector3>(points);
+                tmp_wire.request_regeneration();
+            }
+            else
+            {
+                add_collider();
+            }
         }
         else if (tmp_line != null)
         {
@@ -236,6 +290,25 @@ public class CoralGeneration : MonoBehaviour
         }
     }
 
+    private void generate_wire()
+    {
+        if (tmp_obj == null || wire_generator == null)
+        {
+            return;
+        }
+        GameObject tw = Instantiate(wire_generator.gameObject);
+        tw.name = "wire";
+        tw.transform.parent = tmp_obj.transform;
+        tw.transform.localPosition = new Vector3();
+        tmp_wire = tw.GetComponent<WireGenerator>();
+
+        if (wire_animated)
+        {
+            tmp_wire.animated = true;
+            tmp_wire.play = true;
+        }
+    }
+
     public void Update()
     {
 
@@ -244,7 +317,22 @@ public class CoralGeneration : MonoBehaviour
             return;
         }
 
-        add_position();
+        if (wire_animated && tmp_wire != null && collider != null)
+        {
+            int curr_segs = tmp_wire.get_segment_count();
+            for (int i = wire_segments; i < curr_segs; ++i)
+            {
+                add_collider(tmp_wire.get_segment(i));
+            }
+            wire_segments = curr_segs;
+        }
+
+        if (pressed)
+        {
+            add_position();
+        }
+
+        //add_position();
 
         //// /base.Update();
         // if (Input.GetMouseButtonDown(0))
@@ -274,33 +362,5 @@ public class CoralGeneration : MonoBehaviour
 
     }
 
-    private void generate_wire()
-    {
-        if (tmp_obj == null || wire_generator == null)
-        {
-            return;
-        }
-        GameObject tmp_wire = Instantiate(wire_generator.gameObject);
-        tmp_wire.name = "wire";
-        tmp_wire.transform.parent = tmp_obj.transform;
-        tmp_wire.transform.localPosition = new Vector3();
-        WireGenerator wg = tmp_wire.GetComponent<WireGenerator>();
-        List<Vector3> wgpts = new List<Vector3>();
-        foreach (Vector3 v in points)
-        {
-            wgpts.Add(v);
-        }
-        wg.points = wgpts;
 
-        if (tmp_line != null)
-        {
-            Destroy(tmp_line);
-        }
-
-        if (animation)
-        {
-            wg.animated = true;
-            wg.play = true;
-        }
-    }
 }
