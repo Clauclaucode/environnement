@@ -1,0 +1,36 @@
+MIT License
+
+Copyright (c) 2020 plumjuice.itch.io/corability
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+------------------------------------------------------
+
+THIRD PARTY CODE & ASSETS:
+
+
+https://gitlab.com/polymorphcool/i3_2020
+
+https://assetstore.unity.com/packages/2d/textures-materials/sky/skybox-series-free-103633
+
+https://assetstore.unity.com/packages/2d/textures-materials/water/stylize-water-texture-153577
+
+https://sketchfab.com/3d-models/model-50a-hatchling-hawksbill-sea-turtle-e69458ef8176402d919df421e444da86
+
+https://sketchfab.com/3d-models/coral-849940993f874e9592c11bdd1bf4f964
